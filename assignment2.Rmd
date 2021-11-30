@@ -1,0 +1,92 @@
+---
+title: "Coding 2 - Assignment2"
+author: "Oszkar Egervari"
+date: "11/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=F}
+library(rvest)
+library(data.table)
+library(xml2)
+library(tidyverse)
+library(ggplot2)
+
+t_url <- 'https://boxrec.com/en/proboxer/348759'
+
+t <- read_html(t_url)
+
+t_list <- list()
+a_list <- list()
+
+get_data <- function(t_url) {
+  data.frame(t_list)
+  
+  t <- read_html(t_url)
+  
+  t_list[['name']] <- t %>% html_node('td h1') %>% html_text()
+  
+  t_list[['division']] <- t %>% html_node('.profileTable div:nth-child(1) tr:nth-child(2) .rowLabel+ td') %>% html_text()
+  t_list[['division']] <- trimws(t_list[['division']])
+  
+  t_list[['bouts']] <-  t %>%  html_nodes('.profileTable div:nth-child(1) tr:nth-child(5) .rowLabel+ td') %>% html_text()
+  
+  t_list[['Debut']] <-  t %>%  html_nodes('.profileTable div:nth-child(1) tr:nth-child(9) .rowLabel+ td') %>% html_text()
+  t_list[['Debut']] <- trimws(t_list[['Debut']])
+  
+  t_list[['Alias']] <- t %>% html_nodes('div tr:nth-child(3) .rowLabel+ td') %>% html_text()
+  t_list[['Alias']] <- trimws(t_list[['Alias']][2])
+  
+  t_list[['residence']] <-  t %>% html_nodes('div+ div tr:nth-child(9) .rowLabel+ td') %>% html_text()
+  t_list[['residence']] <- trimws(t_list[['residence']][2])
+  
+  t_list[['nationality']] <-  t %>% html_nodes('div+ div tr:nth-child(5) .rowLabel+ td') %>% html_text()
+  t_list[['nationality']] <- trimws(t_list[['nationality']][2])
+
+  
+  t_list[['age']] <- t %>% html_nodes('div+ div tr:nth-child(4) .rowLabel+ td') %>% html_text()
+  t_list[['age']] <- as.numeric(  trimws(t_list[['age']][2]))
+  
+  t_list[['height']] <-  t %>% html_nodes('div+ div tr:nth-child(7) .rowLabel+ td') %>% html_text()
+  t_list[['height']] <- as.numeric(str_sub(t_list[['height']][2], -5, -3))
+  
+  t_list[['rank']] <-  t %>% html_nodes('.fa-globe+ a') %>% html_text()
+  t_list[['rank']] <- as.numeric( str_sub( trimws(t_list[['rank']]), 1, 1 ))
+  
+  return(t_list)
+  
+}
+
+
+a <- t %>% html_nodes('a') %>% html_attr('href')
+
+links <- a[na.omit(startsWith(a, '/en/proboxer/'))]
+link <- paste0('https://boxrec.com', links)
+
+list_of_lists <- lapply(link, get_data)
+df <- rbindlist(list_of_lists, fill = T)
+```
+
+## Head of data table
+
+```{r cars}
+head(df)
+```
+
+## Plots
+
+Height distribution
+
+```{r pressure, echo=FALSE}
+ggplot(data = df, aes(height)) +
+  geom_bar()
+
+```
+
+Distribution of division
+
+```{r, echo=F}
+ggplot(data = df, aes(division)) +
+  geom_bar()
+```
+
